@@ -67,7 +67,70 @@ public:
     }
 };
 
+class Parser {
+    TokenStream tokenStream;
+    Token currentToken;
+
+    void getToken(TokenType type) {
+        if (currentToken.type == type) {
+            currentToken = tokenStream.getNextToken();
+        }
+        else throw runtime_error("Unexpected token");
+    }
+
+    double numOrParenths() {
+        double result;
+        if (currentToken.type == TokenType::Number) {
+            result = stod(currentToken.value);
+            getToken(TokenType::Number);
+        } else if (currentToken.type == TokenType::LeftParenth) {
+            getToken(TokenType::LeftParenth);
+            result = plusOrMinus();
+            getToken(TokenType::RightParenth);
+        } else throw runtime_error("Unexpected token in factor");
+        return result;
+    }
+
+    double multiplyOrDivide() {
+        double result = numOrParenths();
+        while (currentToken.type == TokenType::Multiply || currentToken.type == TokenType::Divide) {
+            TokenType operation = currentToken.type;
+            getToken(operation);
+            if (operation == TokenType::Multiply) result *= numOrParenths();
+            else result /= numOrParenths();
+        }
+        return result;
+    }
+
+    double plusOrMinus() {
+        double result = multiplyOrDivide();
+        while (currentToken.type == TokenType::Plus || currentToken.type == TokenType::Minus) {
+            TokenType operation = currentToken.type;
+            getToken(operation);
+            if (operation == TokenType::Plus) result += multiplyOrDivide();
+            else result -= multiplyOrDivide();
+        }
+        return result;
+    }
+
+public:
+    Parser(const string& input) : tokenStream(input), currentToken(tokenStream.getNextToken()) {}
+
+    double parse() {
+        return plusOrMinus();
+    }
+};
+
 int main() {
+    string input = "3 + 5 * 10 / 2";
+    Parser parser(input);
+
+    try {
+        double result = parser.parse();
+        cout << "Result: " << result << endl;
+    } catch (const runtime_error& e) {
+        cerr << "Error: " << e.what() << endl;
+    }
     return 0;
 }
 
